@@ -1,0 +1,407 @@
+from random import *
+from struct import pack, unpack
+
+
+# Opaque tiles
+DungeonTileType_Earth = 0
+DungeonTileType_WallUpLeft = 11
+DungeonTileType_WallUp = 12
+DungeonTileType_WallUpRight = 13
+DungeonTileType_WallLeft = 14
+DungeonTileType_WallDownLeft = 15
+DungeonTileType_WallDown = 16
+DungeonTileType_WallDownRight = 17
+DungeonTileType_WallRight = 18
+DungeonTileType_SecretDoor = 30
+DungeonTileType_ClosedDoor = 31
+
+# Transparent tiles
+DungeonTileType_Empty = 101
+DungeonTileType_OpenedDoor = 102
+DungeonTileStairsUp = 103
+DungeonTileStairsDown = 104
+
+
+class Tile:
+    @staticmethod
+    def get_type(value):
+        return value & 0xFF
+
+    @staticmethod
+    def set_type(value, new_type):
+        current_bits = value & 0xFFFFFF00
+        return new_type | current_bits
+
+    @staticmethod
+    def set_seen(tile_value, seen):
+        if seen == 1:
+            return set_bit(tile_value, 9)
+        else:
+            return clear_bit(tile_value, 9)
+
+    @staticmethod
+    def is_seen(tile_value):
+        return get_bit(tile_value, 9) == 1
+
+    @staticmethod
+    def set_lit(tile_value, lit):
+        if lit == 1:
+            return set_bit(tile_value, 10)
+        else:
+            return clear_bit(tile_value, 10)
+
+    @staticmethod
+    def is_lit(tile_value):
+        return get_bit(tile_value, 10) == 1
+
+    @staticmethod
+    def get_description(tile_value):
+        tv = 'type: ' + str(Tile.get_type(tile_value)) + ' lit:' + str(Tile.is_lit(tile_value)) + ' seen:' + str(Tile.is_seen(tile_value)) +" (" + str(tile_value) + ")"
+        return tv
+    @staticmethod
+    def is_opaque(tile_value):
+        return Tile.get_type(tile_value) == DungeonTileType_Earth
+
+def get_bit(value, n):
+    return ((value >> n & 1) != 0)
+
+
+def set_bit(value, n):
+    return value | (1 << n)
+
+
+def clear_bit(value, n):
+    return value & ~(1 << n)
+
+class Dungeon:
+
+    def __init__(self, width, height):
+        self.roomList = []
+        self.cList = []
+        self.width = width
+        self.height = height
+
+    @staticmethod
+    def tile_blocks_light(tile):
+        return int(Tile.get_type(tile)) < 100
+
+    def make_raw_map(self, xsize, ysize, fail, b1, mrooms):
+        """Generate random layout of rooms, corridors and other features"""
+        # makeMap can be modified to accept arguments for values of failed, and percentile of features.
+        # Create first room
+        self.size_x = xsize
+        self.size_y = ysize
+        # initialize map to all walls
+        self.mapArr = []
+        for y in range(ysize):
+            tmp = []
+            for x in range(xsize):
+                tmp.append(DungeonTileType_Earth)
+            self.mapArr.append(tmp)
+
+        w, l, t = self.make_room(ysize)
+
+        while len(self.roomList) == 0:
+            y = randrange(ysize - 1 - l) + 1
+            x = randrange(xsize - 1 - w) + 1
+            p = self.place_room(l, w, x, y, xsize, ysize, 6, 0)
+
+        failed = 0
+
+        while failed < fail:
+            # The lower the value that failed< , the smaller the dungeon
+            chooseRoom = randrange(len(self.roomList))
+            ex, ey, ex2, ey2, et = self.make_exit(chooseRoom)
+            feature = randrange(100)
+            if feature < b1:  # Begin feature choosing (more features to be added here)
+                w, l, t = self.make_corridor()
+            else:
+                w, l, t = self.make_room(ysize)
+            roomDone = self.place_room(l, w, ex2, ey2, xsize, ysize, t, et)
+            if roomDone == 0:  # If placement failed increase possibility map is full
+                failed += 1
+            elif roomDone == 2:  # Possiblilty of linking rooms
+                if self.mapArr[ey2][ex2] == DungeonTileType_Empty:
+                    if randrange(100) < 7:
+                        self.make_portal(ex, ey)
+                    failed += 1
+            else:  # Otherwise, link up the 2 rooms
+                self.make_portal(ex, ey)
+                failed = 0
+                if t < 5:
+                    tc = [len(self.roomList) - 1, ex2, ey2, t]
+                    self.cList.append(tc)
+                    self.join_corridor(len(self.roomList) - 1, ex2, ey2, t, 50)
+            if len(self.roomList) == mrooms:
+                failed = fail
+        self.final_joins()
+
+    @staticmethod
+    def make_room(length_limit):
+        """Randomly produce room size"""
+        rtype = 5
+        rwide = randrange(8) + 3
+        rlong = randrange(length_limit - 5) + 3
+        return rwide, rlong, rtype
+
+    @staticmethod
+    def make_corridor():
+        """Randomly produce corridor length and heading"""
+        clength = randrange(18) + 3
+        heading = randrange(4)
+        if heading == 0:  # North
+            wd = 1
+            lg = -clength
+        elif heading == 1:  # East
+            wd = clength
+            lg = 1
+        elif heading == 2:  # South
+            wd = 1
+            lg = clength
+        elif heading == 3:  # West
+            wd = -clength
+            lg = 1
+        return wd, lg, heading
+
+    def place_room(self, ll, ww, xposs, yposs, xsize, ysize, rty, ext):
+        """Place feature if enough space and return canPlace as true or false"""
+        # Arrange for heading
+        xpos = xposs
+        ypos = yposs
+        if ll < 0:
+            ypos += ll + 1
+            ll = abs(ll)
+        if ww < 0:
+            xpos += ww + 1
+            ww = abs(ww)
+        # Make offset if type is room
+        if rty == 5:
+            if ext == 0 or ext == 2:
+                offset = randrange(ww)
+                xpos -= offset
+            else:
+                offset = randrange(ll)
+                ypos -= offset
+        # Then check if there is space
+        canPlace = 1
+        if ww + xpos + 1 > xsize - 1 or ll + ypos + 1 > ysize:
+            canPlace = 0
+            return canPlace
+        elif xpos < 1 or ypos < 1:
+            canPlace = 0
+            return canPlace
+        else:
+            for j in range(ll):
+                for k in range(ww):
+                    if self.mapArr[(ypos) + j][(xpos) + k] != DungeonTileType_Earth:
+                        canPlace = 2
+        # If there is space, add to list of rooms
+        if canPlace == 1:
+            temp = [ll, ww, xpos, ypos]
+            self.roomList.append(temp)
+            for j in range(ll + 2):  # Then build walls
+                for k in range(ww + 2):
+                    self.mapArr[(ypos - 1) + j][(xpos - 1) + k] = DungeonTileType_WallUp
+            for j in range(ll):  # Then build floor
+                for k in range(ww):
+                    self.mapArr[ypos + j][xpos + k] = DungeonTileType_Empty
+        return canPlace  # Return whether placed is true/false
+
+    def make_exit(self, rn):
+        """Pick random wall and random point along that wall"""
+        room = self.roomList[rn]
+        while True:
+            rw = randrange(4)
+            if rw == 0:  # North wall
+                rx = randrange(room[1]) + room[2]
+                ry = room[3] - 1
+                rx2 = rx
+                ry2 = ry - 1
+            elif rw == 1:  # East wall
+                ry = randrange(room[0]) + room[3]
+                rx = room[2] + room[1]
+                rx2 = rx + 1
+                ry2 = ry
+            elif rw == 2:  # South wall
+                rx = randrange(room[1]) + room[2]
+                ry = room[3] + room[0]
+                rx2 = rx
+                ry2 = ry + 1
+            elif rw == 3:  # West wall
+                ry = randrange(room[0]) + room[3]
+                rx = room[2] - 1
+                rx2 = rx - 1
+                ry2 = ry
+            if self.mapArr[ry][rx] == DungeonTileType_WallUp:  # If space is a wall, exit
+                break
+        return rx, ry, rx2, ry2, rw
+
+    def make_portal(self, px, py):
+        """Create doors in walls"""
+        ptype = randrange(100)
+        if ptype > 90:  # Secret door
+            self.mapArr[py][px] = DungeonTileType_SecretDoor
+            return
+        elif ptype > 75:  # Closed door
+            self.mapArr[py][px] = DungeonTileType_ClosedDoor
+            return
+        elif ptype > 40:  # Open door
+            self.mapArr[py][px] = DungeonTileType_OpenedDoor
+            return
+        else:  # Hole in the wall
+            self.mapArr[py][px] = DungeonTileType_Empty
+
+    def join_corridor(self, cno, xp, yp, ed, psb):
+        """Check corridor endpoint and make an exit if it links to another room"""
+        cArea = self.roomList[cno]
+        if xp != cArea[2] or yp != cArea[3]:  # Find the corridor endpoint
+            endx = xp - (cArea[1] - 1)
+            endy = yp - (cArea[0] - 1)
+        else:
+            endx = xp + (cArea[1] - 1)
+            endy = yp + (cArea[0] - 1)
+        checkExit = []
+        if ed == 0:  # North corridor
+            if endx > 1:
+                coords = [endx - 2, endy, endx - 1, endy]
+                checkExit.append(coords)
+            if endy > 1:
+                coords = [endx, endy - 2, endx, endy - 1]
+                checkExit.append(coords)
+            if endx < self.size_x - 2:
+                coords = [endx + 2, endy, endx + 1, endy]
+                checkExit.append(coords)
+        elif ed == 1:  # East corridor
+            if endy > 1:
+                coords = [endx, endy - 2, endx, endy - 1]
+                checkExit.append(coords)
+            if endx < self.size_x - 2:
+                coords = [endx + 2, endy, endx + 1, endy]
+                checkExit.append(coords)
+            if endy < self.size_y - 2:
+                coords = [endx, endy + 2, endx, endy + 1]
+                checkExit.append(coords)
+        elif ed == 2:  # South corridor
+            if endx < self.size_x - 2:
+                coords = [endx + 2, endy, endx + 1, endy]
+                checkExit.append(coords)
+            if endy < self.size_y - 2:
+                coords = [endx, endy + 2, endx, endy + 1]
+                checkExit.append(coords)
+            if endx > 1:
+                coords = [endx - 2, endy, endx - 1, endy]
+                checkExit.append(coords)
+        elif ed == 3:  # West corridor
+            if endx > 1:
+                coords = [endx - 2, endy, endx - 1, endy]
+                checkExit.append(coords)
+            if endy > 1:
+                coords = [endx, endy - 2, endx, endy - 1]
+                checkExit.append(coords)
+            if endy < self.size_y - 2:
+                coords = [endx, endy + 2, endx, endy + 1]
+                checkExit.append(coords)
+        for xxx, yyy, xxx1, yyy1 in checkExit:  # Loop through possible exits
+            if self.mapArr[yyy][xxx] == DungeonTileType_Empty:  # If joins to a room
+                if randrange(100) < psb:  # Possibility of linking rooms
+                    self.make_portal(xxx1, yyy1)
+
+    def final_joins(self):
+        """Final stage, loops through all the corridors to see if any can be joined to other rooms"""
+        for x in self.cList:
+            self.join_corridor(x[0], x[1], x[2], x[3], 10)
+
+    def generate(self):
+        print("dungeon generation")
+        self.make_raw_map(self.width, self.height, 110, 50, 60)
+
+    def set_seen_map(self,d_map,center, width, height):
+        (x,y) = center
+        min_x = x - width // 2
+        min_y = y - height // 2
+
+        before_los=[]
+        maxy = len(self.mapArr)
+        maxx = len (self.mapArr[0])
+        for y in range(min_y, min_y + height ):
+            for x in range(min_x , min_x + width):
+                if  y >= 0 and y < maxy and x >= 0 and x < maxx:
+                    if Tile.is_seen(d_map[y - min_y][x - min_x]):
+                        seen = 1
+                    else:
+                        seen = 0
+
+                    self.mapArr[y][x] = Tile.set_seen(self.mapArr[y][x],seen)
+                    
+
+    def get_map_view(self,center,width,height):
+        (x,y) = center
+        min_x = x - width // 2
+        min_y = y - height // 2
+
+        before_los=[]
+        maxy = len(self.mapArr)
+        maxx = len (self.mapArr[0])
+        for y in range(min_y, min_y + height ):
+            tmp_los = []
+            for x in range(min_x , min_x + width):
+                if y < 0 or y >= maxy:
+                    tmp_los.append(DungeonTileType_Earth)
+                elif x < 0 or x >= maxx:
+                    tmp_los.append(DungeonTileType_Earth)
+                else:
+                    try:
+                        tmp_los.append(self.mapArr[y][x])
+                    except:
+                        print("ERROR :x,y,maxx,maxy,width,height,center:", x, y, maxx, maxy, width, height, center)
+            before_los.append(tmp_los)
+
+        return before_los
+
+    @staticmethod
+    def get_object_relative_position(object_pos, width, height):
+        (x,y) = object_pos
+        min_x = x - width // 2
+        min_y = y - height // 2
+        return (x-min_x, y-min_y)
+
+
+    def get_player_startup_pos(self):
+        ok = False
+        while not ok:
+            x = randrange(self.width - 1)
+            y = randrange(self.height - 1)
+            ok = self.mapArr[y][x] == DungeonTileType_Empty
+        return x, y
+
+    def door_opened(self, pos):
+        # TODO
+        pass
+
+    def can_go_to(self, pos):
+        (x, y) = pos
+        if (x < 0) or (x > self.width):
+            return False
+
+        if (y < 0) or (y > self.height):
+            return False
+
+        tile_type = Tile.get_type(self.mapArr[y][x])
+
+        if tile_type in (DungeonTileType_Empty, DungeonTileType_OpenedDoor):
+            return True
+
+        if tile_type == DungeonTileType_ClosedDoor:
+            self.mapArr[y][x] = DungeonTileType_OpenedDoor
+            self.door_opened(pos)
+            return False
+
+        if tile_type == DungeonTileType_SecretDoor:
+            self.mapArr[y][x] = DungeonTileType_ClosedDoor
+            return False
+
+    def get_tile(self, x, y):
+        return self.mapArr[y][x]
+    
+
+
