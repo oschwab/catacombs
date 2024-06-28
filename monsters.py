@@ -2,6 +2,7 @@ from apps.Catacombs import world
 from apps.Catacombs import los
 from apps.Catacombs import dungeon
 from apps.Catacombs import entities
+from apps.Catacombs import utils
 
 import math
 import random
@@ -15,6 +16,8 @@ class Monster(entities.LivingThing):
     STATE_HUNTING = 2
     STATE_FLEEING = 3
 
+    DEQUE_MAX_SIZE = 20
+    
     def __init__(self,pos,curr_dungeon,image):
         super().__init__(pos,curr_dungeon,image)
         self.fov_radius = 6
@@ -22,7 +25,7 @@ class Monster(entities.LivingThing):
         self.fov = []
         self.fov_map_size = self.fov_radius * 2
         self.curr_target = None
-        self.curr_path = deque()
+        self.curr_path = deque((),self.DEQUE_MAX_SIZE)
         self.placed = False
         self.energy = 0  # How many energy points this entity has. Used to control movement speed.
         self.description = ""
@@ -99,7 +102,7 @@ class Monster(entities.LivingThing):
             return
         currX, currY = self.x, self.y
         self.curr_target = (x, y)
-        self.curr_path = deque(path[1:])
+        self.curr_path = deque(path[1:],self.DEQUE_MAX_SIZE)
         newX, newY = self.curr_path.popleft()
         dx = newX - currX
         dy = newY - currY
@@ -200,4 +203,4 @@ class Bat(Monster):
 
     def __init__(self,pos,cur_dungeon):
         super().__init__(pos,cur_dungeon,"B")
-        self.description = "a dark and ugly bat"
+        self.description = "dark and ugly bat"

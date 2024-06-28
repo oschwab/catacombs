@@ -4,8 +4,10 @@ import os,time
 import random
 import sys
 
+
 from apps.Catacombs import world
 from apps.Catacombs import dungeon
+from apps.Catacombs import monsters
 #from apps.Catacombs import sprites
  
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ CONSTANTS: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -19,8 +21,8 @@ from apps.Catacombs import vga2_8x8 as font
 _CHAR_WIDTH = const(8)
 _CHAR_WIDTH_HALF = const(_CHAR_WIDTH // 2)
 _CHAR_HEIGHT = _CHAR_WIDTH
-ViewPort_DISPLAY_HEIGHT = 17
-ViewPort_DISPLAY_WIDTH = 30
+ViewPort_DISPLAY_HEIGHT = const(17)
+ViewPort_DISPLAY_WIDTH = const(30)
 
 # from apps.Catacombs import vga2_8x16 as font
 # ## 8x16
@@ -122,88 +124,88 @@ def handleKey(key):
     except ValueError:
         pass
     
-def what_screen_size():
-    #clear framebuffer 
-    tft.fill(config['bg_color'])
-    line ="123456789012345678901234567890123456789012345678901234567890"
-    line_number = 0
-    while line_number < 30:
-        display_text(line,0,line_number)
-        line_number = line_number + 1
-    
-    tft.show()            
-
-    keys=[]
-    # if there are keys, convert them to a string, and store for display
-    while not keys:
-        # get list of newly pressed keys
-        keys = kb.get_new_keys()
-    
-
-def ascii_map():
-    #clear framebuffer 
-    tft.fill(config['bg_color'])
-    y= 169
-    line =""
-    line_number = 0
-    color = 0xEEEE
-    while y < 255:
-        if (y-169) % 5 == 0:
-            tft.bitmap_text(font,line, 0,_CHAR_HEIGHT * (line_number-1), color)
-            line = ""
-            line_number=line_number+1
-            color = color + 16
-        line = line + str(y) + ":" + chr(y)+ " "
-        y=y+1
-    tft.show()            
-
-    keys=[]
-    # if there are keys, convert them to a string, and store for display
-    while not keys:
-        # get list of newly pressed keys
-        keys = kb.get_new_keys()
-
-
-def color_map2():
-    #clear framebuffer 
-    tft.fill(config['bg_color'])
-    y= 0
-    line_number = 0
-    color = 0x0000
-    ratio = (ViewPort_DISPLAY_HEIGHT*ViewPort_DISPLAY_WIDTH)
-    for y in range(ViewPort_DISPLAY_HEIGHT):
-        for x in range(5):            
-            color = ((y * ViewPort_DISPLAY_HEIGHT + x * ViewPort_DISPLAY_WIDTH) * 0xFFFF) // ratio
-            tft.bitmap_text(font,hex(color), x * 6 * _CHAR_WIDTH ,_CHAR_HEIGHT * y, color)
-
-    tft.show()            
-
-    keys=[]
-    # if there are keys, convert them to a string, and store for display
-    while not keys:
-        # get list of newly pressed keys
-        keys = kb.get_new_keys()
-        
-        
-def color_map():
-    #clear framebuffer 
-    tft.fill(config['bg_color'])
-    y= 0
-    line_number = 0
-    color = 0x0000
-    ratio = (ViewPort_DISPLAY_HEIGHT*ViewPort_DISPLAY_WIDTH)
-    for y in range(ViewPort_DISPLAY_HEIGHT):
-        for x in range(ViewPort_DISPLAY_WIDTH):
-            color = ((y * ViewPort_DISPLAY_HEIGHT + x * ViewPort_DISPLAY_WIDTH) * 0xFFFF) // ratio
-            tft.bitmap_text(font,chr(219), x * _CHAR_WIDTH ,_CHAR_HEIGHT * y, color)
-
-    tft.show()            
-
-    keys=[]
-    # if there are keys, convert them to a string, and store for display
-    while not keys:
-        # get list of newly pressed keys
-        keys = kb.get_new_keys()        
+# def what_screen_size():
+#     #clear framebuffer 
+#     tft.fill(config['bg_color'])
+#     line ="123456789012345678901234567890123456789012345678901234567890"
+#     line_number = 0
+#     while line_number < 30:
+#         display_text(line,0,line_number)
+#         line_number = line_number + 1
+#     
+#     tft.show()            
+# 
+#     keys=[]
+#     # if there are keys, convert them to a string, and store for display
+#     while not keys:
+#         # get list of newly pressed keys
+#         keys = kb.get_new_keys()
+#     
+# 
+# def ascii_map():
+#     #clear framebuffer 
+#     tft.fill(config['bg_color'])
+#     y= 169
+#     line =""
+#     line_number = 0
+#     color = 0xEEEE
+#     while y < 255:
+#         if (y-169) % 5 == 0:
+#             tft.bitmap_text(font,line, 0,_CHAR_HEIGHT * (line_number-1), color)
+#             line = ""
+#             line_number=line_number+1
+#             color = color + 16
+#         line = line + str(y) + ":" + chr(y)+ " "
+#         y=y+1
+#     tft.show()            
+# 
+#     keys=[]
+#     # if there are keys, convert them to a string, and store for display
+#     while not keys:
+#         # get list of newly pressed keys
+#         keys = kb.get_new_keys()
+# 
+# 
+# def color_map2():
+#     #clear framebuffer 
+#     tft.fill(config['bg_color'])
+#     y= 0
+#     line_number = 0
+#     color = 0x0000
+#     ratio = (ViewPort_DISPLAY_HEIGHT*ViewPort_DISPLAY_WIDTH)
+#     for y in range(ViewPort_DISPLAY_HEIGHT):
+#         for x in range(5):            
+#             color = ((y * ViewPort_DISPLAY_HEIGHT + x * ViewPort_DISPLAY_WIDTH) * 0xFFFF) // ratio
+#             tft.bitmap_text(font,hex(color), x * 6 * _CHAR_WIDTH ,_CHAR_HEIGHT * y, color)
+# 
+#     tft.show()            
+# 
+#     keys=[]
+#     # if there are keys, convert them to a string, and store for display
+#     while not keys:
+#         # get list of newly pressed keys
+#         keys = kb.get_new_keys()
+#         
+#         
+# def color_map():
+#     #clear framebuffer 
+#     tft.fill(config['bg_color'])
+#     y= 0
+#     line_number = 0
+#     color = 0x0000
+#     ratio = (ViewPort_DISPLAY_HEIGHT*ViewPort_DISPLAY_WIDTH)
+#     for y in range(ViewPort_DISPLAY_HEIGHT):
+#         for x in range(ViewPort_DISPLAY_WIDTH):
+#             color = ((y * ViewPort_DISPLAY_HEIGHT + x * ViewPort_DISPLAY_WIDTH) * 0xFFFF) // ratio
+#             tft.bitmap_text(font,chr(219), x * _CHAR_WIDTH ,_CHAR_HEIGHT * y, color)
+# 
+#     tft.show()            
+# 
+#     keys=[]
+#     # if there are keys, convert them to a string, and store for display
+#     while not keys:
+#         # get list of newly pressed keys
+#         keys = kb.get_new_keys()        
 
         
 def display_text(text,col,line,color = config['ui_color']):
@@ -223,7 +225,7 @@ def display_dungeon():
                         display_text(monster.image, x,y,get_monster_color(monster))
                     else:
                         color = get_tile_color(d_map[y][x])
-                        char = Tiles[dungeon.Tile.get_type(d_map[y][x])]
+                        char = TilesDisplay[dungeon.Tile.get_type(d_map[y][x])]
                         display_text(char, x,y,color)
 
         player_pos = current_world.current_dungeon.get_object_relative_position(current_world.player.current_pos(),ViewPort_DISPLAY_WIDTH,ViewPort_DISPLAY_HEIGHT)
@@ -241,7 +243,7 @@ def get_tile_color(tile):
 
 def get_monster_color(monster):
     if isinstance(monster, monsters.Bat):
-        return 0x0088
+        return 0x7788
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

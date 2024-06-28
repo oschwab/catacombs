@@ -1,6 +1,8 @@
+
 from apps.Catacombs import dungeon
 from apps.Catacombs import los
 from apps.Catacombs import player
+from apps.Catacombs import entities
 from apps.Catacombs import monsters
 import math
 
@@ -30,7 +32,7 @@ Directions = {
 }
 
 
-            
+
 
 
 class World:
@@ -50,7 +52,7 @@ class World:
     def end_turn(self):
         self.current_dungeon.do_monsters_actions()
     def try_move_player(self, move):
-        test_object = WorldObject(self.player.current_pos(), self, "?")
+        test_object = entities.WorldObject(self.player.current_pos(), self, "?")
         self.move_object(test_object, move)
         if self.current_dungeon.can_go_to(test_object.current_pos()):
             self.move_object(self.player, move)

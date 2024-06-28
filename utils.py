@@ -21,12 +21,6 @@ def shuffle(array):
 
 
 class ByteArray2D:
-    """
-    This is designed to be a drop in replacement for your nested list.
-    NOTE: this data could almost certainly be shrunk even further.
-    NOTE2: this assumes you dont need to store numbers larger than 1 byte.
-    """
-
 
     def __init__(self, width, height):
         self.buf = bytearray(width * height)

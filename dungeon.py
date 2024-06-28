@@ -546,7 +546,7 @@ class Dungeon:
             if y - 1 >= 0 and can_pass(x, y - 1):
                 neighbors.append((x, y - 1))
             if rand:
-                shuffle(neighbors)
+                utils.shuffle(neighbors)
 
             for n in neighbors:
                 cost = 1
