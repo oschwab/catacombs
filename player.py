@@ -1,6 +1,6 @@
-from apps.Catacombs import world
+from apps.Catacombs import entities
 
-class Player(world.LivingThing):
-    def __init__(self,pos,world,image):
-        super().__init__(pos,world,image)
-        self.fov = 6
+class Player(entities.LivingThing):
+    def __init__(self,pos,dungeon,image):
+        super().__init__(pos,dungeon,image)
+        self.fov_radius = 6

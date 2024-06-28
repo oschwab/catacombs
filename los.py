@@ -9,26 +9,35 @@ class LosMap(object):
                 [0,  1,  1,  0,  0, -1, -1,  0],
                 [1,  0,  0,  1, -1,  0,  0, -1]
             ]
-    def __init__(self, world, map):
+
+    def __init__(self, dungeon, map):
         self.data = map
-        self.world = world
+        self.dungeon = dungeon
         self.width, self.height = len(map[0]), len(map)
         self.light = []
         for i in range(self.height):
             self.light.append([0] * self.width)
             
         self.flag = 0
+
     def square(self, x, y):
         return self.data[y][x]
+
     def blocked(self, x, y):
         return (x < 0 or y < 0
                 or x >= self.width or y >= self.height
-                or self.world.current_dungeon.tile_blocks_light(self.data[y][x]))
+                or self.dungeon.tile_blocks_light(self.data[y][x]))
+
     def lit(self, x, y):
         return self.light[y][x] == self.flag
+
     def set_lit(self, x, y):
         if 1 <= x < self.width and 0 <= y < self.height:
             self.light[y][x] = self.flag
+
+    def is_lit(self, x, y):
+        return self.light[y][x] == self.flag
+
     def _cast_light(self, cx, cy, row, start, end, radius, xx, xy, yx, yy, id):
         "Recursive lightcasting function"
         if start < end:
@@ -70,6 +79,7 @@ class LosMap(object):
             # Row is scanned; do next row unless last square was blocked:
             if blocked:
                 break
+
     def do_fov(self, x, y, radius):
         "Calculate lit squares from the given location and radius"
         self.flag += 1

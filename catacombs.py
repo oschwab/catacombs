@@ -57,6 +57,9 @@ TilesDisplay = {
     dungeon.DungeonTileStairsDown: ">",
 }
 
+
+
+
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ GLOBAL OBJECTS: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # init object for accessing display
@@ -86,9 +89,29 @@ current_world = world.World()
 
 def handleKey(key):
     try:        
-        is_dir = key in ('u','i','o','h','j','k','b','n','m')
+        is_dir = key in ('u','i','o','h','j','k','b','n','m')        
         if is_dir:
-            current_world.try_move_player(key)
+            dir = world.CENTER
+            if key == 'm':
+                dir = world.SOUTHEAST
+            elif key == 'n':
+                dir = world.SOUTH
+            elif key == 'b':
+                dir = world.SOUTHWEST
+            elif key == 'h':
+                dir = world.WEST
+            elif key == 'j':
+                dir = world.CENTER
+            elif key == 'k':
+                dir = world.EAST
+            elif key == 'o':
+                dir = world.NORTHEAST
+            elif key == 'i':
+                dir = world.NORTH
+            elif key == 'u':
+                dir = world.NORTHWEST
+          
+            current_world.try_move_player(dir)
             return
         if key in ('q','Q'):
             #clear framebuffer 
@@ -194,9 +217,14 @@ def display_dungeon():
         for y in range(ViewPort_DISPLAY_HEIGHT):
             for x in range(ViewPort_DISPLAY_WIDTH):
                 if dungeon.Tile.is_lit(d_map[y][x]) or dungeon.Tile.is_seen(d_map[y][x]) :
-                    color = get_tile_color(d_map[y][x])
-                    char = TilesDisplay[dungeon.Tile.get_type(d_map[y][x])]
-                    display_text(char, x,y,color)
+                  
+                    monster = current_world.get_monster(x, y,ViewPort_DISPLAY_WIDTH, ViewPort_DISPLAY_HEIGHT)
+                    if dungeon.Tile.is_lit(d_map[y][x]) and ( monster is not None):
+                        display_text(monster.image, x,y,get_monster_color(monster))
+                    else:
+                        color = get_tile_color(d_map[y][x])
+                        char = Tiles[dungeon.Tile.get_type(d_map[y][x])]
+                        display_text(char, x,y,color)
 
         player_pos = current_world.current_dungeon.get_object_relative_position(current_world.player.current_pos(),ViewPort_DISPLAY_WIDTH,ViewPort_DISPLAY_HEIGHT)
         display_text(current_world.player.image, player_pos[0],player_pos[1], st7789fbuf.GREEN)
@@ -211,6 +239,9 @@ def get_tile_color(tile):
     else:
         return 0x0000
 
+def get_monster_color(monster):
+    if isinstance(monster, monsters.Bat):
+        return 0x0088
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
