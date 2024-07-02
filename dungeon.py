@@ -1,3 +1,4 @@
+print("#Dungeon")
 from random import *
 from apps.Catacombs import monsters
 from apps.Catacombs import utils
@@ -70,7 +71,6 @@ class Tile:
     def is_opaque(tile_value):
         return Tile.get_type(tile_value) == DungeonTileType_Earth
 
-
 class OpenSet:
 
     def __init__(self, key=None):
@@ -128,6 +128,7 @@ class OpenSet:
 class Dungeon:
 
     def __init__(self, width, height):
+        print("d1")
         self.roomList = []
         self.cList = []
         self.width = width
@@ -135,6 +136,8 @@ class Dungeon:
         self.current_map = None
         self.monsters_list = []
         self.player = None
+        print("d2")
+
 
     @staticmethod
     def tile_blocks_light(tile):
@@ -566,3 +569,6 @@ class Dungeon:
     def do_monsters_actions(self):
         for monster in self.monsters_list:
             monster.action()
+
+
+print(">Dungeon")

@@ -1,9 +1,8 @@
-
+print("#World")
 from apps.Catacombs import dungeon
 from apps.Catacombs import los
 from apps.Catacombs import player
 from apps.Catacombs import entities
-from apps.Catacombs import monsters
 import math
 
 Dungeon_WIDTH = 30 # 100
@@ -30,8 +29,6 @@ Directions = {
     SOUTHWEST: (-1, 1),
     CENTER: (0, 0)
 }
-
-
 
 
 
@@ -128,3 +125,5 @@ def direction_to(start, target):
         return Directions[NORTHEAST]
 
     return Directions[EAST]
+
+print(">World")
