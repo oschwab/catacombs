@@ -33,3 +33,4 @@ try:
 except ImportError as e:
     print(e)
     print(f"Tried to launch {app_path}, but failed!")
+
